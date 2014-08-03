@@ -9,6 +9,7 @@ class randomtable {
 
 
     public function __construct($raw) {
+        $raw = str_replace("\r","",$raw);
         $data = preg_split("/\n#/","\n".$raw);
 
         $this->setStatement(array_shift($data));
