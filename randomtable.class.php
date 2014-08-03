@@ -60,7 +60,7 @@ class randomtable {
         $this->tables[$name] = $table;
     }
 
-    protected function resolveTable($name) {
+    protected function resolveTable($name,$random=null,$set=null) {
         $table = &$this->tables[strtolower($name)];
         if (empty($table)) { // Requested table doesn't exist or is empty
             return "";
@@ -74,14 +74,16 @@ class randomtable {
             if ($row['w'] > 0) // Just in case of negative values
                 $totalweight += $row['w'];
         }
-        $r = ($totalweight == 0)?0:rand(1,$totalweight); // Generate random number for weight
+        if (is_null($random) && $totalweight > 0) {
+            $random = rand(1,$totalweight); // Generate random number for weight
+        }
         foreach ($table as $row) { // There might be a better way to do this, but I can't think of one
             if ($row['w'] == 0) { // Always execute weight 0
                 $return = trim($return." ".$this->parse(trim($row['v'])));
             } else { // Check to see if executed
-                $before = $r;
-                $r -= $row['w'];
-                if ($before > 0 && $r < 1) { // Matched weight
+                $before = $random;
+                $random -= $row['w'];
+                if ($before > 0 && $random < 1) { // Matched weight
                     $text = $this->parse(trim($row['v'])); // Do a recursive parse on the text
                     if ($uc > 1) {
                         $text = ucwords($text);
@@ -114,8 +116,10 @@ class randomtable {
     }
 
     protected function parseTable ($text) {
-        while (preg_match('/\$([a-z0-9_-]+)/i',$text,$match)) { //Look for table references
-            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$this->resolveTable($match[1]),$text,1);
+        while (preg_match('/\$([a-z0-9_-]+)(\(([^)]+)\))?(\{([^}]+)\})?/i',$text,$match)) { //Look for table references
+            $random = isset($match[3])?static::calculate($match[3]):null;
+            $set = isset($match[5])?$match[5]:null;
+            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$this->resolveTable($match[1],$random,$set),$text,1);
         }
         return $text;
     }
