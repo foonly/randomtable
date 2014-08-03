@@ -107,21 +107,36 @@ class randomtable {
     }
 
     protected function parse($text) {
-
         $text = $this->parseDice($text);
-        $text = $this->parseTable($text);
-        $text = $this->parseVarDef($text);
-        $text = $this->parseVar($text);
 
-        return $text;
-    }
+        while (preg_match('/([$%])([a-z][a-z0-9_-]*)([^ [:cntrl:]]*)/i',$text,$match)) { //Look for table references
+            $rep = $match[1].$match[2];
+            $name = $this->varName($match[2]);
+            $opt = empty($match[3])?"":$match[3];
+            if ($match[1] == "$") {
+                preg_match('/^(\(([^)]+)\))?(\{([^}]+)\})?/i',$opt,$m);
+                $rep .= $m[0]; // Add matched options to removed
+                $random = empty($m[2])?null:static::calculate($m[2]);
+                $set = empty($m[4])?null:$m[4];
+                $result = $this->resolveTable($name,$random,$set);
 
-    protected function parseTable ($text) {
-        while (preg_match('/\$([a-z0-9_-]+)(\(([^)]+)\))?(\{([^}]+)\})?/i',$text,$match)) { //Look for table references
-            $random = isset($match[3])?static::calculate($match[3]):null;
-            $set = isset($match[5])?$match[5]:null;
-            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$this->resolveTable($match[1],$random,$set),$text,1);
+            }
+            if ($match[1] == "%") {
+                if (substr($opt,0,1) == "=" || substr($opt,0,1) == "+" || substr($opt,0,1) == "-") { // Variable assignment
+                    if ($this->parseVarDef($name,$opt) === false) {
+                        print_r($match);
+                    }
+                    $rep .= $opt; // Add opt to removed
+                    $result = ""; // Empty result removes assignment from output.
+                } else { // Get the variable contents
+                    $result = $this->getVar($name);
+                }
+            }
+
+            $text = preg_replace('/' . preg_quote( $rep, '/' ) . '/',$result,$text,1);
         }
+
+
         return $text;
     }
 
@@ -140,19 +155,18 @@ class randomtable {
         return $text;
     }
 
-    protected function parseVar ($text) {
-        while (preg_match('/%([a-z0-9_-]+)/i',$text,$match)) { // Show variables
-            $name = $this->varName($match[1]);
-            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$this->getVar($name),$text,1);
+    protected function parseVarDef($name,$def) {
+        if ($def == "++") {
+            $value = $this->getVar($name)."+1";
         }
-        return $text;
-    }
-
-    protected function parseVarDef($text) {
-        while (preg_match('/%([a-z0-9_-]+)=("[^"]*"|[^ ]+)/i',$text,$match)) { // Set variables
-            $name = $this->varName($match[1]);
-            $value = $this->parse($this->varVal($match[2])); // Parse the value before assigning it.
-
+        if ($def == "--") {
+            $value = $this->getVar($name)."-1";
+        }
+        if (substr($def,0,2) == '="' && substr($def,-1) == '"') {
+            $value = substr($def,2,-1);
+        }
+        if (substr($def,0,1) == "=") {
+            $value = $this->parse(substr($def,1)); // Parse the value before assigning it.
             switch (substr($value,0,1)) {
                 case "+":
                 case "-":
@@ -161,24 +175,19 @@ class randomtable {
                     $value = $this->getVar($name).$value;
                     break;
             }
-            $this->setVar($name,$value);
 
-            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/','',$text,1); // Remove statement from text
         }
-        return $text;
+        if (isset($value)) {
+            $this->setVar($name,$value);
+            return true;
+        }
+        return false;
     }
 
     protected function varName ($name) {
         $name = strtolower(trim($name));
         return $name;
     }
-
-    protected function varVal ($value) {
-        $value = trim($value,' "');
-        return $value;
-    }
-
-
 
     static public function cleanup ($text) {
         return preg_replace('/;.*$/','',$text);
