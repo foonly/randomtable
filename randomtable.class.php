@@ -3,6 +3,7 @@
 class randomtable {
     private $tables = Array();
     private $data = Array();
+    private $set = Array();
     private $statement;
 
 
@@ -31,9 +32,6 @@ class randomtable {
     }
 
     public function setVar($name,$value) {
-        echo $value."\n";
-        echo static::calculate($value)."\n\n";
-
         $this->data[$name] = static::calculate($value);
     }
 
@@ -42,7 +40,7 @@ class randomtable {
         $table = Array();
 
         foreach (explode("\n",trim($data)) as $row) {
-            $row = $this->cleanup($row); // Remove comments
+            $row = static::cleanup($row); // Remove comments
             $r = Array("w"=>0,"v"=>"");
             if (preg_match("/^([0-9]+)([^0-9].*)?/",$row,$matches)) {
                 if (!empty($matches[1])) { // Assign weight
@@ -68,7 +66,7 @@ class randomtable {
             return "";
         }
 
-        $uc = $this->checkCase($name);
+        $uc = static::checkCase($name);
 
         $return = "";
         $totalweight = 0;
@@ -84,7 +82,7 @@ class randomtable {
                 $before = $r;
                 $r -= $row['w'];
                 if ($before > 0 && $r < 1) { // Matched weight
-                    $text = strtolower($this->parse(trim($row['v']))); // Do a recursive parse on the text
+                    $text = $this->parse(trim($row['v'])); // Do a recursive parse on the text
                     if ($uc > 1) {
                         $text = ucwords($text);
                     } elseif ($uc > 0) {
@@ -99,18 +97,56 @@ class randomtable {
 
     public function generate ($table=null) {
         $this->data = array(); // Reset variable data
+        if (is_null($table)) {
+            return $this->parse($this->statement);
+        }
         return $this->resolveTable($table);
     }
 
     protected function parse($text) {
 
+        $text = $this->parseDice($text);
+        $text = $this->parseTable($text);
+        $text = $this->parseVarDef($text);
+        $text = $this->parseVar($text);
+
+        return $text;
+    }
+
+    protected function parseTable ($text) {
         while (preg_match('/\$([a-z0-9_-]+)/i',$text,$match)) { //Look for table references
             $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$this->resolveTable($match[1]),$text,1);
         }
+        return $text;
+    }
 
-        while (preg_match('/&([a-z0-9_-]+)=("[^"]*"|[^ ]+)/i',$text,$match)) { // Set variables
-            $name = trim($match[1]);
-            $value = $this->parse(trim($match[2],' "'));
+    protected function parseDice ($text) {
+        while (preg_match('/\[([0-9]+)?D([0-9]+)\]/',$text,$match)) { //Look for die definitions
+            $nr = empty($match[1])?1:$match[1]; // Number of dice
+            $sides = $match[2];
+
+            $result = 0;
+            for ($i=0;$i<$nr;$i++){
+                $result += rand(1,$sides);
+            }
+
+            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$result,$text,1);
+        }
+        return $text;
+    }
+
+    protected function parseVar ($text) {
+        while (preg_match('/%([a-z0-9_-]+)/i',$text,$match)) { // Show variables
+            $name = $this->varName($match[1]);
+            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$this->getVar($name),$text,1);
+        }
+        return $text;
+    }
+
+    protected function parseVarDef($text) {
+        while (preg_match('/%([a-z0-9_-]+)=("[^"]*"|[^ ]+)/i',$text,$match)) { // Set variables
+            $name = $this->varName($match[1]);
+            $value = $this->parse($this->varVal($match[2])); // Parse the value before assigning it.
 
             switch (substr($value,0,1)) {
                 case "+":
@@ -118,27 +154,32 @@ class randomtable {
                 case "*":
                 case "/":
                     $value = $this->getVar($name).$value;
-                break;
+                    break;
             }
             $this->setVar($name,$value);
 
             $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/','',$text,1); // Remove statement from text
         }
-
-        while (preg_match('/&([a-z0-9_-]+)/i',$text,$match)) { // Show variables
-            $name = trim($match[1]);
-
-            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$this->getVar($name),$text,1);
-        }
-
         return $text;
     }
 
-    protected function cleanup ($text) {
+    protected function varName ($name) {
+        $name = strtolower(trim($name));
+        return $name;
+    }
+
+    protected function varVal ($value) {
+        $value = trim($value,' "');
+        return $value;
+    }
+
+
+
+    static public function cleanup ($text) {
         return preg_replace('/;.*$/','',$text);
     }
 
-    protected function checkCase ($text) {
+    static public function checkCase ($text) {
         if (ctype_upper(substr($text,0,1))) { // Check case
             if (ctype_upper(substr($text,1,1))) {
                 return 2;
@@ -150,22 +191,55 @@ class randomtable {
     }
 
     static public function calculate ($text) {
+        $recurse = false;
         while (preg_match('|([0-9.]+)([*/])([0-9.]+)|',$text,$match)) {
             if ($match[2] == "*") {
-                $value = $match[1] * $match[3];
+                $result = $match[1] * $match[3];
             } else {
-                $value = $match[1] / $match[3];
+                $result = $match[1] / $match[3];
             }
-            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$value,$text,1);
+            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$result,$text,1);
         }
+
         while (preg_match('|([0-9.]+)([+-])([0-9.]+)|',$text,$match)) {
             if ($match[2] == "+") {
-                $value = $match[1] + $match[3];
+                $result = $match[1] + $match[3];
             } else {
-                $value = $match[1] - $match[3];
+                $result = $match[1] - $match[3];
             }
-            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$value,$text,1);
+            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$result,$text,1);
         }
-        return $text;
+
+        while (preg_match('/(max|min|avg)\(([^)]+)\)/',$text,$match)) {
+            $parts = explode(",",$match[2]);
+
+            $result = null;
+            switch ($match[1]) {
+                case "max":
+                    foreach ($parts as $part) {
+                        if ($part > $result) $result = $part;
+                    }
+                break;
+                case "min":
+                    foreach ($parts as $part) {
+                        if ($part < $result || is_null($result)) $result = $part;
+                    }
+                break;
+                case "avg":
+                    foreach ($parts as $part) {
+                        $result += $part;
+                    }
+                    $result = $result / count($parts);
+                break;
+            }
+            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$result,$text,1);
+            $recurse = true;
+        }
+
+        if ($recurse) {
+            return static::calculate($text);
+        } else {
+            return $text;
+        }
     }
 }
