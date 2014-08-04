@@ -116,7 +116,7 @@ class randomtable {
         $text = $this->parseDice($text);
         $text = $this->parseIf($text);
 
-        while (preg_match('/([$%])([a-z][a-z0-9_-]*)([^ [:cntrl:]]*)/i',$text,$match)) { //Look for table references
+        while (preg_match('/([$%])([a-z][a-z0-9_-]*)(="[^"]*"|[^ [:cntrl:]]*)/i',$text,$match)) { //Look for table references
             $rep = $match[1].$match[2];
             $name = $this->varName($match[2]);
             $opt = empty($match[3])?"":$match[3];

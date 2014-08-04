@@ -56,3 +56,20 @@ If the table is called with the optional $tablename{setname} where setname can b
 When a table is called with a set, an option already in the set can not be chosen again. If no options remain, nothing is chosen. The same set can be used against different tables, but are of course only useful if the tables share some of the values.
 The value is added before execution, which means that [1D6] will always match [1D6], and "Hello %hello=+1" does not equal "Hello" even though the output is identical.
 You can use as many sets as you wish.
+
+## Variables
+Variables are named memory spaces that can contain values. You do not need to define them in any way, just write values into them and you can use them at any time. Reading a variable that does not exist just returns an empty string.
+
+### Reading a Variable
+Variables are read by %variablename where variablename can be any name you choose. When executed the current value of the variable is written instead.
+
+### Writing a Variable
+Variable values are defined by $variablename=value or %variablename="Text String". There must not be any spaces in the definition, unless the "=" is followed by a double quotation mark. Then the definition is terminated by another double quotation mark.
+Variable definitions can reference themselves (%variablename=%variablename+5) or other variables (%variablename=%othervariable+2). There are some shorthands that can be used. %varname++ adds one to the variable, %varname-- subtracts one. %varname=+4 adds 4. This works with +-*/.
+
+### Functions
+Some functions can also be used in variable definitions. So far these are:
+
+* min(%val1,%val2,%val3,10) - Returns the smallest of all the values given, you can give as many values as you like.
+* max(%val1,%val2,%val3,10) - Same but the largest.
+* avg(%val1,%val2,%val3,10) - Returns the average (mean) of all values given.
