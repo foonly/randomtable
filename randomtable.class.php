@@ -64,6 +64,7 @@ class randomtable {
     }
 
     protected function resolveTable($name,$random=null,$set=null,$delimiter=" ") {
+        echo $random;
         $table = &$this->tables[strtolower($name)];
         if (!is_null($set)) { // Assign pointer if defined otherwise var will be local, avoids extra code. (Ugly hack)
             $set = &$this->set[strtolower($set)];
@@ -123,7 +124,7 @@ class randomtable {
             if ($match[1] == "$") {
                 preg_match('/^(\(([^)]+)\))?(\{([^}]+)\})?/i',$opt,$m);
                 $rep .= $m[0]; // Add matched options to removed
-                $random = empty($m[2])?null:static::calculate($m[2]);
+                $random = empty($m[2])?null:static::calculate($this->parse($m[2]));
                 $set = empty($m[4])?null:$m[4];
                 $result = $this->resolveTable($name,$random,$set);
 
