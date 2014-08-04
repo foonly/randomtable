@@ -4,12 +4,14 @@ class randomtable {
     private $tables = Array();
     private $data = Array();
     private $set = Array();
-    private $statement;
+    private $statement = "";
 
 
 
     public function __construct($raw) {
-        $raw = str_replace("\r","",$raw);
+        $raw = str_replace("\r","\n",$raw);
+        $raw = str_replace("\n\n","\n",$raw);
+
         $data = preg_split("/\n#/","\n".$raw);
 
         $this->setStatement(array_shift($data));
@@ -61,37 +63,37 @@ class randomtable {
         $this->tables[$name] = $table;
     }
 
-    protected function resolveTable($name,$random=null,$set=null) {
+    protected function resolveTable($name,$random=null,$set=null,$delimiter=" ") {
         $table = &$this->tables[strtolower($name)];
+        if (!is_null($set)) { // Assign pointer if defined otherwise var will be local, avoids extra code. (Ugly hack)
+            $set = &$this->set[strtolower($set)];
+        }
+        if (!is_array($set)) $set = array();
+
         if (empty($table)) { // Requested table doesn't exist or is empty
             return "";
         }
 
-        $uc = static::checkCase($name);
-
         $return = "";
         $totalweight = 0;
         foreach ($table as $row) {
-            if ($row['w'] > 0) // Just in case of negative values
+            if ($row['w'] > 0 && !in_array(strtolower($row['v']),$set)) { // Check for negative values and if in set
                 $totalweight += $row['w'];
+            }
         }
         if (is_null($random) && $totalweight > 0) {
             $random = rand(1,$totalweight); // Generate random number for weight
         }
         foreach ($table as $row) { // There might be a better way to do this, but I can't think of one
             if ($row['w'] == 0) { // Always execute weight 0
-                $return = trim($return." ".$this->parse(trim($row['v'])));
-            } else { // Check to see if executed
+                $return .= $this->parse(trim($row['v'])).$delimiter;
+            } elseif (!in_array(strtolower($row['v']),$set)) { // Check to see if in set
                 $before = $random;
                 $random -= $row['w'];
                 if ($before > 0 && $random < 1) { // Matched weight
+                    $set[] = strtolower($row['v']); // Add unparsed value to set
                     $text = $this->parse(trim($row['v'])); // Do a recursive parse on the text
-                    if ($uc > 1) {
-                        $text = ucwords($text);
-                    } elseif ($uc > 0) {
-                        $text = ucfirst($text);
-                    }
-                    $return = trim($return." ".$this->parse(trim($text)));
+                    $return .= $text.$delimiter; // Add to return
                 }
             }
         }
@@ -101,13 +103,18 @@ class randomtable {
     public function generate ($table=null) {
         $this->data = array(); // Reset variable data
         if (is_null($table)) {
-            return $this->parse($this->statement);
+            if (empty($this->statement)) {
+                return $this->resolveTable("main",null,null,"\n");
+            } else {
+                return $this->resolveTable($this->statement,null,null,"\n");
+            }
         }
-        return $this->resolveTable($table);
+        return $this->resolveTable($table,null,null,"\n");
     }
 
     protected function parse($text) {
         $text = $this->parseDice($text);
+        $text = $this->parseIf($text);
 
         while (preg_match('/([$%])([a-z][a-z0-9_-]*)([^ [:cntrl:]]*)/i',$text,$match)) { //Look for table references
             $rep = $match[1].$match[2];
@@ -138,6 +145,43 @@ class randomtable {
 
 
         return $text;
+    }
+
+    protected function parseIf($text) {
+        while (preg_match('/^\$if(.+)then(.*)$/i',$text,$match)) {
+            $parts = explode(' $else ',$match[2],2);
+
+            $result = $this->condition($match[1])?trim($parts[0]):trim(empty($parts[1])?'':$parts[1]);
+
+            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$result,$text,1);
+        }
+        return $text;
+    }
+
+    protected function condition($condition) {
+        $condition = static::calculate($this->parse(trim($condition)));
+
+        while (preg_match('/^(.*) (lte?|gte?|eq) (.*)$/i',$condition,$match)) {
+            switch ($match[2]) {
+                case "lt":
+                    return ($match[1] < $match[3]);
+
+                case "lte":
+                    return ($match[1] <= $match[3]);
+
+                case "gt":
+                    return ($match[1] > $match[3]);
+
+                case "gte":
+                    return ($match[1] >= $match[3]);
+
+                case "eq":
+                    return ($match[1] == $match[3]);
+            }
+            return false;
+        }
+
+        return false;
     }
 
     protected function parseDice ($text) {
@@ -213,6 +257,7 @@ class randomtable {
                 $result = $match[1] / $match[3];
             }
             $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$result,$text,1);
+            $recurse = true;
         }
 
         while (preg_match('|([0-9.]+)([+-])([0-9.]+)|',$text,$match)) {
@@ -222,6 +267,7 @@ class randomtable {
                 $result = $match[1] - $match[3];
             }
             $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$result,$text,1);
+            $recurse = true;
         }
 
         while (preg_match('/(max|min|avg)\(([^)]+)\)/',$text,$match)) {
