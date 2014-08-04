@@ -148,7 +148,7 @@ class randomtable {
     }
 
     protected function parseIf($text) {
-        while (preg_match('/^\$if(.+)then(.*)$/i',$text,$match)) {
+        while (preg_match('/^\$if(.+)\$then(.*)$/i',$text,$match)) {
             $parts = explode(' $else ',$match[2],2);
 
             $result = $this->condition($match[1])?trim($parts[0]):trim(empty($parts[1])?'':$parts[1]);
