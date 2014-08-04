@@ -64,7 +64,6 @@ class randomtable {
     }
 
     protected function resolveTable($name,$random=null,$set=null,$delimiter=" ") {
-        echo $random;
         $table = &$this->tables[strtolower($name)];
         if (!is_null($set)) { // Assign pointer if defined otherwise var will be local, avoids extra code. (Ugly hack)
             $set = &$this->set[strtolower($set)];
