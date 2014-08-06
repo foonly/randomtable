@@ -189,15 +189,11 @@ class randomtable {
             $nr = empty($match[1])?1:$match[1]; // Number of dice
             $sides = $match[2];
 
-            $result = 0;
-            for ($i=0;$i<$nr;$i++){
-                $result += rand(1,$sides);
-            }
-
-            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$result,$text,1);
+            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',static::rollDice($nr,$sides),$text,1);
         }
         return $text;
     }
+
 
     protected function parseVarDef($name,$def) {
         if ($def == "++") {
@@ -232,6 +228,14 @@ class randomtable {
         return $name;
     }
 
+    static public function rollDice($nr,$sides) {
+        $result = 0;
+        for ($i=0;$i<$nr;$i++){
+            $result += rand(1,$sides);
+        }
+        return $result;
+    }
+
     static public function cleanup ($text) {
         return preg_replace('/;.*$/','',$text);
     }
@@ -248,6 +252,13 @@ class randomtable {
     }
 
     static public function calculate ($text) {
+        while (preg_match('/([0-9]+)?D([0-9]+)/',$text,$match)) { //Look for die definitions
+            $nr = empty($match[1])?1:$match[1]; // Number of dice
+            $sides = $match[2];
+
+            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',static::rollDice($nr,$sides),$text,1);
+        }
+
         $recurse = false;
         while (preg_match('|([0-9.]+)([*/])([0-9.]+)|',$text,$match)) {
             if ($match[2] == "*") {
