@@ -18,8 +18,8 @@ Comments can be entered using the semicolon character (;). Anything after the se
 
 ## Tables
 Tables are the backbone of the format. A table is always executed in order from first row to last row.
-All commands are executed in order, with the exception of [2D6] dice notation is always evaluated first, so you can use it in table and variable names.
 A table definition always start with #tablename.
+All commands are executed in order, with the exception of the [] calculate notation that is always evaluated first in the row, so you can use it in table and variable names.
 
 ### Weighted Rows
 Any rows that start with a number are weighted, this means that the number in front of it is the probability that that particular row will be executed. Only weighted row is executed per call to the table.
@@ -42,7 +42,7 @@ Any row not starting with a number, $if or ";" are always executed, in order fro
 ### Row Execution
 Execution of a row is done in the following order.
 
-* [nDs] - Any dice notation like [3D6] or [D8] are always executed first.
+* [] - Any calculation formula surrounded by [ and ]. No spaces are allowed.
 * $if ... $then statements, because they are always first in the line.
 * $table, %variable=1 and %variable are executed in the order they are written, separated by spaces.
 

@@ -113,7 +113,7 @@ class randomtable {
     }
 
     protected function parse($text) {
-        $text = $this->parseDice($text);
+        $text = $this->parseCalc($text);
         $text = $this->parseIf($text);
 
         while (preg_match('/([$%])([a-z][a-z0-9_]*)(="[^"]*"|[^ [:cntrl:]]*)/i',$text,$match)) { //Look for table references
@@ -184,12 +184,9 @@ class randomtable {
         return false;
     }
 
-    protected function parseDice ($text) {
-        while (preg_match('/\[([0-9]+)?D([0-9]+)\]/',$text,$match)) { //Look for die definitions
-            $nr = empty($match[1])?1:$match[1]; // Number of dice
-            $sides = $match[2];
-
-            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',static::rollDice($nr,$sides),$text,1);
+    protected function parseCalc ($text) {
+        while (preg_match('/\[([^] ]+)\]/',$text,$match)) { //Look for []
+            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',static::calculate($this->parse($match[1])),$text,1);
         }
         return $text;
     }
