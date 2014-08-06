@@ -116,7 +116,7 @@ class randomtable {
         $text = $this->parseDice($text);
         $text = $this->parseIf($text);
 
-        while (preg_match('/([$%])([a-z][a-z0-9_-]*)(="[^"]*"|[^ [:cntrl:]]*)/i',$text,$match)) { //Look for table references
+        while (preg_match('/([$%])([a-z][a-z0-9_]*)(="[^"]*"|[^ [:cntrl:]]*)/i',$text,$match)) { //Look for table references
             $rep = $match[1].$match[2];
             $name = $this->varName($match[2]);
             $opt = empty($match[3])?"":$match[3];
@@ -129,9 +129,9 @@ class randomtable {
 
             }
             if ($match[1] == "%") {
-                if (substr($opt,0,1) == "=" || substr($opt,0,1) == "+" || substr($opt,0,1) == "-") { // Variable assignment
+                if (substr($opt,0,1) == "=" || substr($opt,0,2) == "++" || substr($opt,0,2) == "--") { // Variable assignment
                     if ($this->parseVarDef($name,$opt) === false) {
-                        print_r($match);
+                        error_log("Error defining variable:\n".print_r($match,true));
                     }
                     $rep .= $opt; // Add opt to removed
                     $result = ""; // Empty result removes assignment from output.
@@ -208,8 +208,7 @@ class randomtable {
         }
         if (substr($def,0,2) == '="' && substr($def,-1) == '"') {
             $value = substr($def,2,-1);
-        }
-        if (substr($def,0,1) == "=") {
+        } else if (substr($def,0,1) == "=") {
             $value = $this->parse(substr($def,1)); // Parse the value before assigning it.
             switch (substr($value,0,1)) {
                 case "+":
