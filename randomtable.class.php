@@ -52,7 +52,7 @@ class randomtable {
         foreach (explode("\n",trim($data)) as $row) {
             $row = static::cleanup($row); // Remove comments
             $r = Array("w"=>0,"v"=>"");
-            if (preg_match("/^([0-9]+)([^0-9].*)?/",$row,$matches)) {
+            if (preg_match("/^([0-9]+) ([^0-9].*)?/",$row,$matches)) {
                 if (!empty($matches[1])) { // Assign weight
                     $r['w'] = 0+$matches[1];
                 }
@@ -120,10 +120,10 @@ class randomtable {
     }
 
     protected function parse($text) {
-        $text = $this->parseDice($text);
+        $text = $this->parseCalc($text);
         $text = $this->parseIf($text);
 
-        while (preg_match('/([$%])([a-z][a-z0-9_-]*)([^ [:cntrl:]]*)/i',$text,$match)) { //Look for table references
+        while (preg_match('/([$%])([a-z][a-z0-9_]*)(="[^"]*"|[^ [:cntrl:]]*)/i',$text,$match)) { //Look for table and variable references
             $rep = $match[1].$match[2];
             $name = $this->varName($match[2]);
             $opt = empty($match[3])?"":$match[3];
@@ -136,14 +136,22 @@ class randomtable {
 
             }
             if ($match[1] == "%") {
-                if (substr($opt,0,1) == "=" || substr($opt,0,1) == "+" || substr($opt,0,1) == "-") { // Variable assignment
-                    if ($this->parseVarDef($name,$opt) === false) {
-                        print_r($match);
+                if (preg_match('!^([+*/-])?=(.*)!',$opt,$match)) { // Variable assignment
+                    if ($this->parseVarDef($name,$match[2],empty($match[1])?null:$match[1]) === false) {
+                        error_log("Error defining variable:\n".print_r($match,true));
                     }
                     $rep .= $opt; // Add opt to removed
                     $result = ""; // Empty result removes assignment from output.
                 } else { // Get the variable contents
                     $result = $this->getVar($name);
+                    if ($opt == "++") {
+                        $this->setVar($name,$this->getVar($name)+1);
+                        $rep .= $opt; // Add opt to removed
+                    }
+                    if ($opt == "--") {
+                        $this->setVar($name,$this->getVar($name)-1);
+                        $rep .= $opt; // Add opt to removed
+                    }
                 }
             }
 
@@ -174,12 +182,14 @@ class randomtable {
                     return ($match[1] < $match[3]);
 
                 case "lte":
+                case "le":
                     return ($match[1] <= $match[3]);
 
                 case "gt":
                     return ($match[1] > $match[3]);
 
                 case "gte":
+                case "ge":
                     return ($match[1] >= $match[3]);
 
                 case "eq":
@@ -191,42 +201,22 @@ class randomtable {
         return false;
     }
 
-    protected function parseDice ($text) {
-        while (preg_match('/\[([0-9]+)?D([0-9]+)\]/',$text,$match)) { //Look for die definitions
-            $nr = empty($match[1])?1:$match[1]; // Number of dice
-            $sides = $match[2];
-
-            $result = 0;
-            for ($i=0;$i<$nr;$i++){
-                $result += rand(1,$sides);
-            }
-
-            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$result,$text,1);
+    protected function parseCalc ($text) {
+        while (preg_match('/\[([^] ]+)\]/',$text,$match)) { //Look for []
+            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',static::calculate($this->parse($match[1])),$text,1);
         }
         return $text;
     }
 
-    protected function parseVarDef($name,$def) {
-        if ($def == "++") {
-            $value = $this->getVar($name)."+1";
-        }
-        if ($def == "--") {
-            $value = $this->getVar($name)."-1";
-        }
-        if (substr($def,0,2) == '="' && substr($def,-1) == '"') {
-            $value = substr($def,2,-1);
-        }
-        if (substr($def,0,1) == "=") {
-            $value = $this->parse(substr($def,1)); // Parse the value before assigning it.
-            switch (substr($value,0,1)) {
-                case "+":
-                case "-":
-                case "*":
-                case "/":
-                    $value = $this->getVar($name).$value;
-                    break;
-            }
 
+    protected function parseVarDef($name,$def,$shorthand=null) {
+        if (substr($def,0,1) == '"' && substr($def,-1) == '"') { // Assign quoted value
+            $value = substr($def,1,-1);
+        } else if (!is_null($shorthand)) { // Look for shorthand
+            $value = $this->parse($this->getVar($name).$shorthand.$def); // Parse the value before assigning it.
+
+        } else {
+            $value = $this->parse($def); // Parse the value before assigning it.
         }
         if (isset($value)) {
             $this->setVar($name,$value);
@@ -238,6 +228,14 @@ class randomtable {
     protected function varName ($name) {
         $name = strtolower(trim($name));
         return $name;
+    }
+
+    static public function rollDice($nr,$sides) {
+        $result = 0;
+        for ($i=0;$i<$nr;$i++){
+            $result += rand(1,$sides);
+        }
+        return $result;
     }
 
     static public function cleanup ($text) {
@@ -256,8 +254,15 @@ class randomtable {
     }
 
     static public function calculate ($text) {
+        while (preg_match('/([0-9]+)?D([0-9]+)/',$text,$match)) { //Look for die definitions
+            $nr = empty($match[1])?1:$match[1]; // Number of dice
+            $sides = $match[2];
+
+            $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',static::rollDice($nr,$sides),$text,1);
+        }
+
         $recurse = false;
-        while (preg_match('|([0-9.]+)([*/])([0-9.]+)|',$text,$match)) {
+        while (preg_match('|(-?[0-9.]+)([*/])(-?[0-9.]+)|',$text,$match)) {
             if ($match[2] == "*") {
                 $result = $match[1] * $match[3];
             } else {
@@ -267,7 +272,7 @@ class randomtable {
             $recurse = true;
         }
 
-        while (preg_match('|([0-9.]+)([+-])([0-9.]+)|',$text,$match)) {
+        while (preg_match('|(-?[0-9.]+)([+-])(-?[0-9.]+)|',$text,$match)) {
             if ($match[2] == "+") {
                 $result = $match[1] + $match[3];
             } else {

@@ -1,0 +1,30 @@
+#main
+Test Case
+1D6: [1D6]
+1D6-10: [1D6-10]
+
+%test=2 %test=-3
+ -3: %test++
+ -2: %test
+%test+=1 -1: %test
+%test=%test+2
+ 1: %test-- %foo=2
+%test=%test+2+%foo %test/=%foo 2: %test
+
+ -6: [-3+-3]
+ 0: [-3--3]
+
+A - $settest(1){test}
+B - $settest(1){test}
+C - $settest(1){test}
+Empty: $settest{test}
+
+Random - $settest{test2}
+Random - $settest{test2}
+Random - $settest{test2}
+Empty: $settest{test2}
+
+#settest
+1 Option A
+1 Option B
+1 Option C
