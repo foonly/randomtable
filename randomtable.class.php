@@ -6,9 +6,16 @@ class randomtable {
     private $set = Array();
     private $statement = "";
 
+    public function __construct($raw=null) {
+        if (!is_null($raw)) $this->populate($raw);
+    }
 
+    public function populate ($raw) {
+        $this->tables = Array();
+        $this->data = Array();
+        $this->set = Array();
+        $this->statement = "";
 
-    public function __construct($raw) {
         $raw = str_replace("\r","\n",$raw);
         $raw = str_replace("\n\n","\n",$raw);
 
