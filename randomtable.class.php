@@ -92,19 +92,20 @@ class randomtable {
             $random = rand(1,$totalweight); // Generate random number for weight
         }
         foreach ($table as $row) { // There might be a better way to do this, but I can't think of one
+            $text = "";
             if ($row['w'] == 0) { // Always execute weight 0
-                $return .= $this->parse(trim($row['v'])).$delimiter;
+                $text = trim($this->parse($row['v']));
             } elseif (!in_array(strtolower($row['v']),$set)) { // Check to see if in set
                 $before = $random;
                 $random -= $row['w'];
                 if ($before > 0 && $random < 1) { // Matched weight
                     $set[] = strtolower($row['v']); // Add unparsed value to set
-                    $text = $this->parse(trim($row['v'])); // Do a recursive parse on the text
-                    $return .= $text.$delimiter; // Add to return
+                    $text = trim($this->parse($row['v'])); // Do a recursive parse on the text
                 }
             }
+            if (!empty($text)) $return .= $text.$delimiter; // Add to return
         }
-        return trim($return);
+        return static::trimLines(str_replace('\n',"\n",$return));
     }
 
     public function generate ($table=null) {
@@ -157,7 +158,6 @@ class randomtable {
 
             $text = preg_replace('/' . preg_quote( $rep, '/' ) . '/',$result,$text,1);
         }
-
 
         return $text;
     }
@@ -251,6 +251,14 @@ class randomtable {
             }
         }
         return 0;
+    }
+
+    static public function trimLines ($text) {
+        $output = array();
+        foreach (explode("\n",$text) as $line) {
+            $output[] = trim($line);
+        }
+        return implode("\n",$output);
     }
 
     static public function calculate ($text) {

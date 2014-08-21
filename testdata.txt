@@ -24,7 +24,16 @@ Random - $settest{test2}
 Random - $settest{test2}
 Empty: $settest{test2}
 
+$testing
+
 #settest
 1 Option A
 1 Option B
 1 Option C
+
+#testing
+Foobar:\n
+1 Buu
+2 Bää
+3 Böm\n
+Test
