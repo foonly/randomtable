@@ -5,16 +5,26 @@ class randomtable {
     private $data = Array();
     private $set = Array();
     private $statement = "";
+    private $include = Array();
+    private $loaded = Array();
 
-    public function __construct($raw=null) {
-        if (!is_null($raw)) $this->populate($raw);
+    public function __construct($raw=null,$name=null) {
+        if (!is_null($raw)) $this->populate($raw,$name);
     }
 
-    public function populate ($raw) {
-        $this->tables = Array();
-        $this->data = Array();
-        $this->set = Array();
-        $this->statement = "";
+    public function populate ($raw,$name=null,$reset=false) {
+        if ($reset) {
+            $this->tables = Array();
+            $this->data = Array();
+            $this->set = Array();
+            $this->statement = "";
+            $this->include = Array();
+            $this->loaded = Array();
+        }
+
+        if (!empty($name) && !in_array($name,$this->loaded)) {
+            $this->loaded[] = $name;
+        }
 
         $raw = str_replace("\r","\n",$raw);
         $raw = str_replace("\n\n","\n",$raw);
@@ -25,12 +35,33 @@ class randomtable {
 
         foreach ($data as $table) {
             $parts = explode("\n",$table,2);
+            if ($parts[0] != "main" || !isset($this->tables[$parts[0]]))
             $this->buildTable($parts[0],$parts[1]);
         }
     }
 
+    public function getStatement() {
+        return $this->statement;
+    }
     public function setStatement($value) {
-        $this->statement = trim($value);
+        while (preg_match('/@([a-z][a-z0-9_-]*)/i',$value,$match)) {
+            $this->include[] = $match[1];
+            $value = trim(str_replace($match[0],"",$value));
+        }
+        if (empty($this->statement)) {
+            $this->statement = trim($value);
+        }
+    }
+
+    public function getInclude() {
+        return $this->include;
+    }
+    public function popInclude() {
+        if (count($this->include)) {
+            return array_pop($this->include);
+        } else {
+            return false;
+        }
     }
 
     public function getVar($name) {
@@ -43,6 +74,10 @@ class randomtable {
 
     public function setVar($name,$value) {
         $this->data[$name] = static::calculate($value);
+    }
+
+    public function isLoaded($name) {
+        return in_array($name,$this->loaded);
     }
 
     protected function buildTable($name,$data) {
