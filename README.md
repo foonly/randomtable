@@ -2,7 +2,7 @@
 A parser class for randomizing tables
 
 This parser uses a format developed by Dr. J.M. "Thijs" Krijger <matthijs.krijger@gmail.com>.
-The parser and documentation is written by Niklas Schönberg <niko@uplink.fi> and released under the GPL.
+The parser class and documentation is written by Niklas Schönberg <niko@uplink.fi> and released under the GPL.
 
 ## Usage
 The class is used with a text string containing the tables (see format.md). The string can be given as the first argument in the constructor, and/or with the populate() method.
