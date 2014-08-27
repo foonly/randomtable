@@ -1,7 +1,6 @@
 @foobar @barfoo
-gohere
 
-#main
+#testcase
 Test Case\n
 1D6: [10D6]\n
 1D6-10: [1D6-10]\n
@@ -31,9 +30,11 @@ ABC or empty: $emptyrow\n
 \n
 $testing\n
 
-#gohere
-GoHere:\n
-$main
+#main
+GoHere:
+\n
+(One row above):
+$testcase
 
 #settest
 1 Option A

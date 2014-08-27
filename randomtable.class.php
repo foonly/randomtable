@@ -138,7 +138,12 @@ class randomtable {
                     $text = trim($this->parse($row['v'])); // Do a recursive parse on the text
                 }
             }
-            if (!empty($text)) $return .= $text.$delimiter; // Add to return
+            if (!empty($text)) { // Add to return
+                $return .= $text;
+                if (trim($text) != '\n' || $delimiter != "\n") {
+                    $return .= $delimiter;
+                }
+            }
         }
         return static::trimLines(str_replace('\n',"\n",$return));
     }
