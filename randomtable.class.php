@@ -8,11 +8,11 @@ class randomtable {
     private $include = Array();
     private $loaded = Array();
 
-    public function __construct($raw=null,$name=null) {
-        if (!is_null($raw)) $this->populate($raw,$name);
+    public function __construct($rawData=null,$dataSetName=null) {
+        if (!is_null($rawData)) $this->populate($rawData,$dataSetName);
     }
 
-    public function populate ($raw,$name=null,$reset=false) {
+    public function populate ($rawData,$dataSetName=null,$reset=false) {
         if ($reset) {
             $this->tables = Array();
             $this->data = Array();
@@ -22,14 +22,14 @@ class randomtable {
             $this->loaded = Array();
         }
 
-        if (!empty($name) && !in_array($name,$this->loaded)) {
-            $this->loaded[] = $name;
+        if (!empty($dataSetName) && !in_array($dataSetName,$this->loaded)) {
+            $this->loaded[] = $dataSetName;
         }
 
-        $raw = str_replace("\r","\n",$raw);
-        $raw = str_replace("\n\n","\n",$raw);
+        $rawData = str_replace("\r","\n",$rawData);
+        $rawData = str_replace("\n\n","\n",$rawData);
 
-        $data = preg_split("/\n#/","\n".$raw);
+        $data = preg_split("/\n#/","\n".$rawData);
 
         $this->setStatement(array_shift($data));
 
@@ -76,8 +76,8 @@ class randomtable {
         $this->data[$name] = static::calculate($value);
     }
 
-    public function isLoaded($name) {
-        return in_array($name,$this->loaded);
+    public function isLoaded($dataSetName) {
+        return in_array($dataSetName,$this->loaded);
     }
 
     protected function buildTable($name,$data) {
@@ -148,8 +148,10 @@ class randomtable {
         return static::trimLines(str_replace('\n',"\n",$return));
     }
 
-    public function generate ($table=null) {
+    public function generate ($table=null,$keepSet=false) {
         $this->data = array(); // Reset variable data
+        if (!$keepSet) $this->set = Array(); // Reset set data
+
         if (is_null($table)) {
             if (empty($this->statement)) {
                 return $this->resolveTable("main",null,null,"\n");
