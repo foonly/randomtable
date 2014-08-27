@@ -87,12 +87,12 @@ class randomtable {
         foreach (explode("\n",trim($data)) as $row) {
             $row = static::cleanup($row); // Remove comments
             $r = Array("w"=>0,"v"=>"");
-            if (preg_match("/^([0-9]+) ([^0-9].*)?/",$row,$matches)) {
+            if (preg_match("/^([0-9]+)( [^0-9].*)?/",$row,$matches)) {
                 if (!empty($matches[1])) { // Assign weight
-                    $r['w'] = 0+$matches[1];
+                    $r['w'] = intval($matches[1]);
                 }
                 if (!empty($matches[2])) { // Assign value
-                    $r['v'] = $matches[2];
+                    $r['v'] = trim($matches[2]);
                 }
             } else {
                 $r['v'] = $row;
@@ -159,7 +159,7 @@ class randomtable {
         $text = $this->parseCalc($text);
         $text = $this->parseIf($text);
 
-        while (preg_match('/([$%])([a-z][a-z0-9_]*)(="[^"]*"|[^ [:cntrl:]]*)/i',$text,$match)) { //Look for table and variable references
+        while (preg_match('/([$%])([a-z][a-z0-9_]*)(="[^"]*"|[^ [:cntrl:]\\\\]*)/i',$text,$match)) { //Look for table and variable references
             $rep = $match[1].$match[2];
             $name = $this->varName($match[2]);
             $opt = empty($match[3])?"":$match[3];
