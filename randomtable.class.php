@@ -43,12 +43,12 @@ class randomtable {
     public function getStatement() {
         return $this->statement;
     }
-    public function setStatement($value) {
+    public function setStatement($value,$overwrite=false) {
         while (preg_match('/@([a-z][a-z0-9_-]*)/i',$value,$match)) {
             $this->include[] = $match[1];
             $value = trim(str_replace($match[0],"",$value));
         }
-        if (empty($this->statement)) {
+        if (empty($this->statement) || $overwrite) {
             $this->statement = trim($value);
         }
     }
@@ -64,24 +64,38 @@ class randomtable {
         }
     }
 
-    public function getVar($name) {
-        $value = "";
-        if (isset($this->data[$name])) {
-            $value = $this->data[$name];
-        }
-        return $value;
-    }
-
-    public function setVar($name,$value) {
-        $this->data[$name] = static::calculate($value);
-    }
-
     public function isLoaded($dataSetName) {
         return in_array($dataSetName,$this->loaded);
     }
 
-    protected function buildTable($name,$data) {
-        $name = strtolower($name);
+    public function generate ($table=null,$keepSet=false) {
+        $this->data = array(); // Reset variable data
+        if (!$keepSet) $this->set = Array(); // Reset set data
+
+        if (is_null($table)) {
+            if (empty($this->statement)) {
+                return $this->resolveTable("main",null,null,"\n");
+            } else {
+                return $this->resolveTable($this->statement,null,null,"\n");
+            }
+        }
+        return $this->resolveTable($table,null,null,"\n");
+    }
+
+    public function getVar($variableName) {
+        $value = "";
+        if (isset($this->data[$variableName])) {
+            $value = $this->data[$variableName];
+        }
+        return $value;
+    }
+
+    public function setVar($variableName,$value) {
+        $this->data[$variableName] = static::calculate($value);
+    }
+
+    protected function buildTable($tableName,$data) {
+        $tableName = strtolower($tableName);
         $table = Array();
 
         foreach (explode("\n",trim($data)) as $row) {
@@ -102,7 +116,7 @@ class randomtable {
             }
         }
 
-        $this->tables[$name] = $table;
+        $this->tables[$tableName] = $table;
     }
 
     protected function resolveTable($name,$random=null,$set=null,$delimiter=" ") {
@@ -146,20 +160,6 @@ class randomtable {
             }
         }
         return static::trimLines(str_replace('\n',"\n",$return));
-    }
-
-    public function generate ($table=null,$keepSet=false) {
-        $this->data = array(); // Reset variable data
-        if (!$keepSet) $this->set = Array(); // Reset set data
-
-        if (is_null($table)) {
-            if (empty($this->statement)) {
-                return $this->resolveTable("main",null,null,"\n");
-            } else {
-                return $this->resolveTable($this->statement,null,null,"\n");
-            }
-        }
-        return $this->resolveTable($table,null,null,"\n");
     }
 
     protected function parse($text) {
