@@ -325,7 +325,7 @@ class randomtable {
             $recurse = true;
         }
 
-        while (preg_match('/(max|min|avg)\(([^)]+)\)/',$text,$match)) {
+        while (preg_match('/(max|min|avg|round|roundto)\(([^)]+)\)/',$text,$match)) {
             $parts = explode(",",$match[2]);
 
             $result = null;
@@ -346,6 +346,12 @@ class randomtable {
                     }
                     $result = $result / count($parts);
                 break;
+                case "round":
+                    $result = round($parts[0],$parts[1]);
+                    break;
+                case "roundto":
+                    $result = round($parts[0] / $parts[1]) * $parts[1];
+                    break;
             }
             $text = preg_replace('/' . preg_quote( $match[0], '/' ) . '/',$result,$text,1);
             $recurse = true;
