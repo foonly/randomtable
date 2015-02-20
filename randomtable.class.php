@@ -8,11 +8,11 @@ class randomtable {
     private $include = Array();
     private $loaded = Array();
 
-    public function __construct($raw=null,$name=null) {
-        if (!is_null($raw)) $this->populate($raw,$name);
+    public function __construct($rawData=null,$dataSetName=null) {
+        if (!is_null($rawData)) $this->populate($rawData,$dataSetName);
     }
 
-    public function populate ($raw,$name=null,$reset=false) {
+    public function populate ($rawData,$dataSetName=null,$reset=false) {
         if ($reset) {
             $this->tables = Array();
             $this->data = Array();
@@ -22,14 +22,14 @@ class randomtable {
             $this->loaded = Array();
         }
 
-        if (!empty($name) && !in_array($name,$this->loaded)) {
-            $this->loaded[] = $name;
+        if (!empty($dataSetName) && !in_array($dataSetName,$this->loaded)) {
+            $this->loaded[] = $dataSetName;
         }
 
-        $raw = str_replace("\r","\n",$raw);
-        $raw = str_replace("\n\n","\n",$raw);
+        $rawData = str_replace("\r","\n",$rawData);
+        $rawData = str_replace("\n\n","\n",$rawData);
 
-        $data = preg_split("/\n#/","\n".$raw);
+        $data = preg_split("/\n#/","\n".$rawData);
 
         $this->setStatement(array_shift($data));
 
@@ -43,12 +43,12 @@ class randomtable {
     public function getStatement() {
         return $this->statement;
     }
-    public function setStatement($value) {
+    public function setStatement($value,$overwrite=false) {
         while (preg_match('/@([a-z][a-z0-9_-]*)/i',$value,$match)) {
             $this->include[] = $match[1];
             $value = trim(str_replace($match[0],"",$value));
         }
-        if (empty($this->statement)) {
+        if (empty($this->statement) || $overwrite) {
             $this->statement = trim($value);
         }
     }
@@ -64,35 +64,49 @@ class randomtable {
         }
     }
 
-    public function getVar($name) {
+    public function isLoaded($dataSetName) {
+        return in_array($dataSetName,$this->loaded);
+    }
+
+    public function generate ($table=null,$keepSet=false) {
+        $this->data = array(); // Reset variable data
+        if (!$keepSet) $this->set = Array(); // Reset set data
+
+        if (is_null($table)) {
+            if (empty($this->statement)) {
+                return $this->resolveTable("main",null,null,"\n");
+            } else {
+                return $this->resolveTable($this->statement,null,null,"\n");
+            }
+        }
+        return $this->resolveTable($table,null,null,"\n");
+    }
+
+    public function getVar($variableName) {
         $value = "";
-        if (isset($this->data[$name])) {
-            $value = $this->data[$name];
+        if (isset($this->data[$variableName])) {
+            $value = $this->data[$variableName];
         }
         return $value;
     }
 
-    public function setVar($name,$value) {
-        $this->data[$name] = static::calculate($value);
+    public function setVar($variableName,$value) {
+        $this->data[$variableName] = static::calculate($value);
     }
 
-    public function isLoaded($name) {
-        return in_array($name,$this->loaded);
-    }
-
-    protected function buildTable($name,$data) {
-        $name = strtolower($name);
+    protected function buildTable($tableName,$data) {
+        $tableName = strtolower($tableName);
         $table = Array();
 
         foreach (explode("\n",trim($data)) as $row) {
             $row = static::cleanup($row); // Remove comments
             $r = Array("w"=>0,"v"=>"");
-            if (preg_match("/^([0-9]+) ([^0-9].*)?/",$row,$matches)) {
+            if (preg_match("/^([0-9]+)( [^0-9].*)?/",$row,$matches)) {
                 if (!empty($matches[1])) { // Assign weight
-                    $r['w'] = 0+$matches[1];
+                    $r['w'] = intval($matches[1]);
                 }
                 if (!empty($matches[2])) { // Assign value
-                    $r['v'] = $matches[2];
+                    $r['v'] = trim($matches[2]);
                 }
             } else {
                 $r['v'] = $row;
@@ -102,7 +116,7 @@ class randomtable {
             }
         }
 
-        $this->tables[$name] = $table;
+        $this->tables[$tableName] = $table;
     }
 
     protected function resolveTable($name,$random=null,$set=null,$delimiter=" ") {
@@ -138,28 +152,21 @@ class randomtable {
                     $text = trim($this->parse($row['v'])); // Do a recursive parse on the text
                 }
             }
-            if (!empty($text)) $return .= $text.$delimiter; // Add to return
-        }
-        return static::trimLines(str_replace('\n',"\n",$return));
-    }
-
-    public function generate ($table=null) {
-        $this->data = array(); // Reset variable data
-        if (is_null($table)) {
-            if (empty($this->statement)) {
-                return $this->resolveTable("main",null,null,"\n");
-            } else {
-                return $this->resolveTable($this->statement,null,null,"\n");
+            if (!empty($text)) { // Add to return
+                $return .= $text;
+                if (trim($text) != '\n' || $delimiter != "\n") {
+                    $return .= $delimiter;
+                }
             }
         }
-        return $this->resolveTable($table,null,null,"\n");
+        return static::trimLines(str_replace('\n',"\n",$return));
     }
 
     protected function parse($text) {
         $text = $this->parseCalc($text);
         $text = $this->parseIf($text);
 
-        while (preg_match('/([$%])([a-z][a-z0-9_]*)(="[^"]*"|[^ [:cntrl:]]*)/i',$text,$match)) { //Look for table and variable references
+        while (preg_match('/([$%])([a-z][a-z0-9_]*)(="[^"]*"|[^ [:cntrl:]\\\\]*)/i',$text,$match)) { //Look for table and variable references
             $rep = $match[1].$match[2];
             $name = $this->varName($match[2]);
             $opt = empty($match[3])?"":$match[3];

@@ -1,42 +1,54 @@
 @foobar @barfoo
-gohere
+
+#testcase
+Test Case\n
+1D6: [10D6]\n
+1D6-10: [1D6-10]\n
+\n
+%test=2 %test=-3\n
+ -3: %test++\n
+ -2: %test\n
+%test+=1 -1: %test\n
+%test=%test+2\n
+ 1: %test-- %foo=2\n
+%test=%test+2+%foo %test/=%foo 2: %test\n
+\n
+ -6: [-3+-3]\n
+ 0: [-3--3]\n
+\n
+A - $settest(1){test}\n
+B - $settest(1){test}\n
+C - $settest(1){test}\n
+Empty: $settest{test}\n
+\n
+Random - $settest{test2}\n
+Random - $settest{test2}\n
+Random - $settest{test2}\n
+Empty: $settest{test2}\n
+\n
+ABC or empty: $emptyrow\n
+\n
+$testing\n
 
 #main
-Test Case
-1D6: [10D6]
-1D6-10: [1D6-10]
--
-%test=2 %test=-3
- -3: %test++
- -2: %test
-%test+=1 -1: %test
-%test=%test+2
- 1: %test-- %foo=2
-%test=%test+2+%foo %test/=%foo 2: %test
--
- -6: [-3+-3]
- 0: [-3--3]
--
-A - $settest(1){test}
-B - $settest(1){test}
-C - $settest(1){test}
-Empty: $settest{test}
--
-Random - $settest{test2}
-Random - $settest{test2}
-Random - $settest{test2}
-Empty: $settest{test2}
--
-$testing
-
-#gohere
-GoHere:\n
-$main
+GoHere:
+\n
+(One row above):
+$testcase
 
 #settest
 1 Option A
 1 Option B
 1 Option C
+
+#emptyrow
+1
+3 A
+1
+3 B
+1
+3 C
+1
 
 #testing
 Foobar:\n
@@ -44,3 +56,4 @@ Foobar:\n
 2 Bää
 3 Böm\n
 \nTest
+
