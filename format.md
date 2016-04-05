@@ -19,10 +19,10 @@ Comments can be entered using the semicolon character (;). Anything after the se
 ## Tables
 Tables are the backbone of the format. A table is always executed in order from first row to last row.
 A table definition always start with #tablename.
-All commands are executed in order, with the exception of the [] calculate notation that is always evaluated first in the row, so you can use it in table and variable names.
+All commands are executed in the order they are written within the row, with the exception of the [] calculate notation that is always evaluated first, so you can use it in table and variable names.
 
 ### Weighted Rows
-Any rows that start with a number are weighted, this means that the number in front of it is the probability that that particular row will be executed. Only weighted row is executed per call to the table.
+Any rows that start with a number are weighted, this means that the number in front of it is the probability that that particular row will be executed. Only one weighted row is executed per call to the table.
 
 ### Conditional Rows
 Conditional rows always start with "$if" and contain "$then", they may or may not contain "$else". The statement between $if and $then is the condition. The condition is two items and a comparison operator. These can be:
@@ -34,13 +34,13 @@ Conditional rows always start with "$if" and contain "$then", they may or may no
 * eq - Equal to, true if both items are equal.
 
 If the condition is true the row after $then, but before a possible $else is executed. If false then anything after the $else statement is executed.
-Weighted rows can be conditional as well, but the $if must be the first text after the number and a space.
+Weighted rows can be conditional as well, but the $if must be the first text after the number and space.
 
 ### Other Rows
 Any row not starting with a number, $if or ";" are always executed, in order from top to bottom. This means that any rows written in the middle of weighted rows will be executed after the weighted rows in front of it if they are chosen, but before the ones after it.
 
 ### Row Execution
-Execution of a row is done in the following order.
+Execution within a row is done in the following order.
 
 * [] - Any calculation formula surrounded by [ and ]. No spaces are allowed.
 * $if ... $then statements, because they are always first in the line.
@@ -65,7 +65,7 @@ Variables are read by %variablename where variablename can be any name you choos
 
 ### Writing a Variable
 Variable values are defined by $variablename=value or %variablename="Text String". There must not be any spaces in the definition, unless the "=" is followed by a double quotation mark. Then the definition is terminated by another double quotation mark.
-Variable definitions can reference themselves (%variablename=%variablename+5) or other variables (%variablename=%othervariable+2). There are some shorthands that can be used. %varname++ adds one to the variable, %varname-- subtracts one. %varname=+4 adds 4. This works with +-*/.
+Variable definitions can reference themselves (%variablename=%variablename+5) or other variables (%variablename=%othervariable+2). There are some shorthands that can be used. %varname++ adds one to the variable, %varname-- subtracts one. %varname+=4 adds 4. This works with +-*/.
 
 ### Functions
 Some functions can also be used in variable definitions. So far these are:
